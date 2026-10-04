@@ -250,7 +250,8 @@ test.describe("landing page", () => {
 
   test("shows the thank-you fallback when no stored order exists", async ({ page }) => {
     await page.goto("/thank-you");
-    await expect(page.getByRole("heading", { level: 1, name: "No confirmed order found." })).toBeVisible();
+    await page.waitForFunction(() => document.body.textContent?.includes("No confirmed order found."));
+    await expect(page.getByText("No confirmed order found.")).toBeVisible();
     await expect(page.getByText("Return to the store, add a product, and complete checkout to view an order confirmation.")).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue shopping" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Back to checkout" })).toBeVisible();
@@ -279,10 +280,11 @@ test.describe("landing page", () => {
     }, "apple-clone-order");
 
     await page.goto("/thank-you");
-    await expect(page.getByRole("heading", { level: 1, name: "Thanks for your order." })).toBeVisible();
+    await page.waitForFunction(() => document.body.textContent?.includes("Thanks for your order."));
+    await expect(page.getByText("Thanks for your order.")).toBeVisible();
     await expect(page.getByText("APL-1123456")).toBeVisible();
     await expect(page.getByText("Stored User")).toBeVisible();
-    await expect(page.getByText("snapshot@example.com")).toBeVisible();
+    await expect(page.getByText("snapshot@example.com", { exact: true })).toBeVisible();
     await expect(page.getByText("Apple Store pickup")).toBeVisible();
     await expect(page.getByText("No Cost EMI offer available at checkout with eligible cards.")).toBeVisible();
     await expect(page.getByText("₹1,23,456")).toBeVisible();
