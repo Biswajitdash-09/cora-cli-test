@@ -203,8 +203,9 @@ test.describe("landing page", () => {
     await expect(page.getByRole("heading", { level: 2, name: "Shop the latest lineup in India." })).toBeVisible();
 
     await page.locator("#store").scrollIntoViewIfNeeded();
-    await page.locator(".product-card", { hasText: "iPhone 16 Pro" }).getByRole("button", { name: "Add to bag" }).click();
-    await expect(page.locator(".cart-panel")).toContainText("1 item");
+    const iPhoneCard = page.locator(".product-card").filter({ has: page.getByRole("heading", { level: 3, name: "iPhone 16 Pro" }) });
+    await iPhoneCard.getByRole("button", { name: "Add to bag" }).click();
+    await expect(page.locator(".cart-panel").getByRole("heading", { level: 3, name: "1 item" })).toBeVisible();
     await expect(page.locator(".cart-panel").getByRole("link", { name: "Checkout" })).toBeVisible();
     await page.locator(".cart-panel").getByRole("link", { name: "Checkout" }).click();
 
@@ -238,13 +239,79 @@ test.describe("landing page", () => {
     await page.getByLabel("Apple Store pickup").check();
 
     await page.getByRole("button", { name: "Place demo order" }).click();
-    await expect(page).toHaveURL(/\/thank-you\?/);
+    await expect(page).toHaveURL(/\/thank-you$/);
     await expect(page.getByRole("heading", { level: 1, name: "Thanks for your order." })).toBeVisible();
     await expect(page.getByText("Order confirmed")).toBeVisible();
     await expect(page.getByText("Apple Store pickup")).toBeVisible();
     await expect(page.getByText("Demo User")).toBeVisible();
     await expect(page.getByText("demo@example.com")).toBeVisible();
     await expect(page.getByText("1 Infinite Loop, Cupertino 95014")).toBeVisible();
+  });
+
+  test("shows the thank-you fallback when no stored order exists", async ({ page }) => {
+    await page.goto("/thank-you");
+    await expect(page.getByRole("heading", { level: 1, name: "No confirmed order found." })).toBeVisible();
+    await expect(page.getByText("Return to the store, add a product, and complete checkout to view an order confirmation.")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Continue shopping" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Back to checkout" })).toBeVisible();
+  });
+
+  test("renders the thank-you page from a stored order snapshot", async ({ page }) => {
+    await page.addInitScript((storageKey) => {
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          orderNumber: "APL-1123456",
+          email: "snapshot@example.com",
+          fullName: "Stored User",
+          address: "1 Infinite Loop",
+          city: "Cupertino",
+          postalCode: "560001",
+          total: 123456,
+          items: 1,
+          shippingMethod: "pickup",
+          deliveryEstimate: "Ready for pickup after order confirmation.",
+          promoCode: "NOEMI",
+          promoDiscount: 0,
+          promoDescription: "No Cost EMI offer available at checkout with eligible cards.",
+        }),
+      );
+    }, "apple-clone-order");
+
+    await page.goto("/thank-you");
+    await expect(page.getByRole("heading", { level: 1, name: "Thanks for your order." })).toBeVisible();
+    await expect(page.getByText("APL-1123456")).toBeVisible();
+    await expect(page.getByText("Stored User")).toBeVisible();
+    await expect(page.getByText("snapshot@example.com")).toBeVisible();
+    await expect(page.getByText("Apple Store pickup")).toBeVisible();
+    await expect(page.getByText("No Cost EMI offer available at checkout with eligible cards.")).toBeVisible();
+    await expect(page.getByText("₹1,23,456")).toBeVisible();
+  });
+
+  test("keeps the product drawer modal focus contained and restores the trigger", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator(".site-header")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Shop the latest lineup in India." })).toBeVisible();
+
+    const detailsButton = page
+      .locator(".product-card")
+      .filter({ has: page.getByRole("heading", { level: 3, name: "iPhone 16 Pro" }) })
+      .getByRole("button", { name: "View details" });
+
+    await detailsButton.click();
+
+    const dialog = page.getByRole("dialog", { name: /iPhone 16 Pro/i });
+    await expect(dialog).toBeVisible();
+    await expect(page.getByRole("button", { name: "Close product details" })).toBeFocused();
+    await expect(page.locator("#app-root")).toHaveAttribute("aria-hidden", "true");
+
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "Add to bag" })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator("#app-root")).not.toHaveAttribute("aria-hidden", "true");
+    await expect(detailsButton).toBeFocused();
   });
 
   test("does not fail key page requests", async ({ page, baseURL }) => {

@@ -1,20 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 
-import { formatCurrency, ORDER_STORAGE_KEY, parseStoredOrder } from "@/lib/product-types";
+import { formatCurrency, ORDER_STORAGE_KEY, parseStoredOrder, type SubmittedOrder } from "@/lib/product-types";
 
 export default function ThankYouPage() {
-  const submittedOrder = useMemo(() => {
+  const [submittedOrder, setSubmittedOrder] = useState<SubmittedOrder | null>(null);
+  const [hasLoadedOrder, setHasLoadedOrder] = useState(false);
+
+  useEffect(() => {
     const storedOrder = parseStoredOrder(window.localStorage.getItem(ORDER_STORAGE_KEY));
 
     if (storedOrder === null) {
       window.localStorage.removeItem(ORDER_STORAGE_KEY);
     }
 
-    return storedOrder;
+    setSubmittedOrder(storedOrder);
+    setHasLoadedOrder(true);
   }, []);
+
+  if (!hasLoadedOrder) {
+    return null;
+  }
 
   if (submittedOrder === null) {
     return (

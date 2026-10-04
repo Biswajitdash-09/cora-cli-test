@@ -16,7 +16,7 @@ export function ProductDetailDrawer({ product, onClose, onAddToBag }: ProductDet
   useEffect(() => {
     const panelElement = panelRef.current;
     const previousActiveElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const appRoot = document.querySelector("body > div") as HTMLElement | null;
+    const appRoot = document.getElementById("app-root");
     const selectors = [
       'button:not([disabled])',
       '[href]',

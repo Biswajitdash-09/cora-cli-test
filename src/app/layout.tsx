@@ -12,7 +12,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en">
       <body>
-        <CartProvider>{children}</CartProvider>
+        <div id="app-root">
+          <CartProvider>{children}</CartProvider>
+        </div>
       </body>
     </html>
   );
